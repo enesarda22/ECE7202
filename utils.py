@@ -43,6 +43,43 @@ class Policy(ABC):
         ...
 
 
+class EpsGreedyPolicy(Policy):
+    def __init__(self, eps, n_arms, size):
+        super().__init__(n_arms=n_arms, size=size)
+        self.eps = eps
+
+        self.counts = np.zeros((size, n_arms))
+        self.sample_mean_rewards = np.zeros((size, n_arms))
+
+    def choose_action(self):
+        actions = np.empty(self.size, dtype=np.int64)
+
+        explore_idx = np.random.random(self.size) < self.eps
+        actions[explore_idx] = np.random.choice(self.n_arms, np.sum(explore_idx))
+
+        exploit_means = self.sample_mean_rewards[~explore_idx, :]
+        actions[~explore_idx] = self.random_argmax(exploit_means, axis=1)
+
+        return actions
+
+    def update(self, reward, action):
+        # update counts
+        selected_counts = select_from_rows(self.counts, action) + 1
+        put_to_rows(self.counts, action, selected_counts)
+
+        # update rewards
+        selected_rewards = select_from_rows(self.sample_mean_rewards, action)
+        deviation = reward - selected_rewards
+        new_rewards = selected_rewards + deviation / selected_counts
+        put_to_rows(self.sample_mean_rewards, action, new_rewards)
+
+    @classmethod
+    def random_argmax(cls, a, **kwargs):
+        random_mat = 1e-5 + np.random.random(a.shape)
+        multiple_maxes = np.isclose(a, a.max(**kwargs, keepdims=True))
+        return np.argmax(random_mat * multiple_maxes, **kwargs)
+
+
 class UCBPolicy(Policy):
     EPS = 1e-6
 
