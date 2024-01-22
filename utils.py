@@ -2,6 +2,30 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from matplotlib import pyplot as plt
+
+
+def plot(parameter_grid, regrets, regrets_se, algorithm_name, parameter_name):
+    min_idx = np.argmin(regrets)
+    print(
+        f"Best parameter: {parameter_grid[min_idx]:.2f}, "
+        f"Best regret: {regrets[min_idx]:.2f} +- {regrets_se[min_idx]:.2f}\n"
+    )
+
+    plt.plot(parameter_grid, regrets)
+    plt.plot(parameter_grid[min_idx], regrets[min_idx], "rx", label="Min Regret")
+    plt.fill_between(
+        parameter_grid, regrets - regrets_se, regrets + regrets_se, color="b", alpha=0.2
+    )
+
+    plt.title(f"Performance of {algorithm_name}")
+    plt.xlabel(parameter_name)
+    plt.ylabel("Regret")
+
+    plt.legend()
+    plt.grid()
+    plt.show()
+
 
 def select_from_rows(arr, idx):
     return np.take_along_axis(
@@ -42,6 +66,43 @@ class Policy(ABC):
     def update(self, reward, action):
         ...
 
+    @classmethod
+    def random_argmax(cls, a, **kwargs):
+        random_mat = 1e-5 + np.random.random(a.shape)
+        multiple_maxes = np.isclose(a, a.max(**kwargs, keepdims=True))
+        return np.argmax(random_mat * multiple_maxes, **kwargs)
+
+
+class ExploreFirstGreedyPolicy(Policy):
+    def __init__(self, n, n_arms, size):
+        super().__init__(n_arms=n_arms, size=size)
+        self.n = n
+
+        self.counts = np.zeros((size, n_arms))
+        self.sample_mean_rewards = np.zeros((size, n_arms))
+
+    def choose_action(self):
+        actions = np.empty(self.size, dtype=np.int64)
+
+        explore_idx = np.sum(self.counts, axis=1) < self.n
+        actions[explore_idx] = np.random.choice(self.n_arms, np.sum(explore_idx))
+
+        exploit_means = self.sample_mean_rewards[~explore_idx, :]
+        actions[~explore_idx] = self.random_argmax(exploit_means, axis=1)
+
+        return actions
+
+    def update(self, reward, action):
+        # update counts
+        selected_counts = select_from_rows(self.counts, action) + 1
+        put_to_rows(self.counts, action, selected_counts)
+
+        # update rewards
+        selected_rewards = select_from_rows(self.sample_mean_rewards, action)
+        deviation = reward - selected_rewards
+        new_rewards = selected_rewards + deviation / selected_counts
+        put_to_rows(self.sample_mean_rewards, action, new_rewards)
+
 
 class EpsGreedyPolicy(Policy):
     def __init__(self, eps, n_arms, size):
@@ -72,12 +133,6 @@ class EpsGreedyPolicy(Policy):
         deviation = reward - selected_rewards
         new_rewards = selected_rewards + deviation / selected_counts
         put_to_rows(self.sample_mean_rewards, action, new_rewards)
-
-    @classmethod
-    def random_argmax(cls, a, **kwargs):
-        random_mat = 1e-5 + np.random.random(a.shape)
-        multiple_maxes = np.isclose(a, a.max(**kwargs, keepdims=True))
-        return np.argmax(random_mat * multiple_maxes, **kwargs)
 
 
 class UCBPolicy(Policy):
