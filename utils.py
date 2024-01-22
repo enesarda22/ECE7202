@@ -3,17 +3,33 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
+def select_from_rows(arr, idx):
+    return np.take_along_axis(
+        arr=arr,
+        indices=idx.reshape(-1, 1),
+        axis=1,
+    ).flatten()
+
+
+def put_to_rows(arr, idx, values):
+    np.put_along_axis(
+        arr=arr,
+        indices=idx.reshape(-1, 1),
+        values=values.reshape(-1, 1),
+        axis=1,
+    )
+
+
 class MultiArmedBandit:
-    def __init__(self, n_arms):
-        self.mean_rewards = np.random.randn(n_arms)
+    def __init__(self, n_arms, size):
+        self.mean_rewards = np.random.randn(size, n_arms)
 
     def take_action(self, k):
-        return np.random.normal(self.mean_rewards[k], 1)
+        means = select_from_rows(self.mean_rewards, k)
+        return np.random.normal(means, 1)
 
 
 class Policy(ABC):
-    EPS = 1e-6
-
     def __init__(self, n_arms, size):
         self.n_arms = n_arms
         self.size = size
@@ -26,31 +42,10 @@ class Policy(ABC):
     def update(self, reward, action):
         ...
 
-    @classmethod
-    def random_argmax(cls, a, **kwargs):
-        random_mat = cls.EPS + np.random.random(a.shape)
-        multiple_maxes = np.isclose(a, a.max(**kwargs, keepdims=True))
-        return np.argmax(random_mat * multiple_maxes, **kwargs)
-
-    @staticmethod
-    def select_from_rows(arr, idx):
-        return np.take_along_axis(
-            arr=arr,
-            indices=idx.reshape(-1, 1),
-            axis=1,
-        ).flatten()
-
-    @staticmethod
-    def put_to_rows(arr, idx, values):
-        np.put_along_axis(
-            arr=arr,
-            indices=idx.reshape(-1, 1),
-            values=values.reshape(-1, 1),
-            axis=1,
-        )
-
 
 class UCBPolicy(Policy):
+    EPS = 1e-6
+
     def __init__(self, c, n_arms, size):
         super().__init__(n_arms=n_arms, size=size)
         self.c = c
@@ -65,18 +60,24 @@ class UCBPolicy(Policy):
 
     def update(self, reward, action):
         # update counts
-        selected_counts = self.select_from_rows(self.counts, action) + 1
-        self.put_to_rows(self.counts, action, selected_counts)
+        selected_counts = select_from_rows(self.counts, action) + 1
+        put_to_rows(self.counts, action, selected_counts)
 
         # update rewards
-        selected_rewards = self.select_from_rows(self.sample_mean_rewards, action)
+        selected_rewards = select_from_rows(self.sample_mean_rewards, action)
         deviation = reward - selected_rewards
         new_rewards = selected_rewards + deviation / selected_counts
-        self.put_to_rows(self.sample_mean_rewards, action, new_rewards)
+        put_to_rows(self.sample_mean_rewards, action, new_rewards)
 
         # update uncertainties
         time_factor = np.log(np.sum(self.counts, axis=1, keepdims=True))
         self.uncertainties = self.c * np.sqrt(time_factor / (self.counts + self.EPS))
+
+    @classmethod
+    def random_argmax(cls, a, **kwargs):
+        random_mat = cls.EPS + np.random.random(a.shape)
+        multiple_maxes = np.isclose(a, a.max(**kwargs, keepdims=True))
+        return np.argmax(random_mat * multiple_maxes, **kwargs)
 
 
 class GradientPolicy(Policy):
@@ -118,13 +119,14 @@ class Simulator:
         policy: Policy,
         time_horizon,
     ):
-        assert bandit.mean_rewards.shape[0] == policy.n_arms
+        assert bandit.mean_rewards.shape[0] == policy.size
+        assert bandit.mean_rewards.shape[1] == policy.n_arms
 
         self.bandit = bandit
         self.policy = policy
         self.time_horizon = time_horizon
 
-        self.max_reward = np.max(self.bandit.mean_rewards)
+        self.max_reward = np.max(self.bandit.mean_rewards, axis=1)
         self.mean_regrets = np.zeros(time_horizon)
         self.se_regrets = np.zeros(time_horizon)
 
@@ -134,5 +136,5 @@ class Simulator:
             reward = self.bandit.take_action(k=k)
 
             self.policy.update(reward=reward, action=k)
-            self.mean_regrets[i] = self.max_reward - np.mean(reward)
+            self.mean_regrets[i] = np.mean(self.max_reward - reward)
             self.se_regrets[i] = np.std(reward) / np.sqrt(reward.shape[0])
