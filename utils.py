@@ -187,16 +187,19 @@ class GradientPolicy(Policy):
         return self.rng.multinomial(1, probs).argmax(axis=1)
 
     def update(self, reward, action):
-        # update rewards
-        self.count += 1
-        deviation = reward - self.sample_mean_rewards
-        self.sample_mean_rewards += deviation / self.count
+        if self.count == 0:
+            self.sample_mean_rewards = reward
 
         # update scores
         probs = self.softmax_rows(self.scores)
         baseline_deviation = (reward - self.sample_mean_rewards).reshape(-1, 1)
         grad = np.eye(self.n_arms)[action] - probs
         self.scores += self.alpha * baseline_deviation * grad
+
+        # update rewards
+        self.count += 1
+        deviation = reward - self.sample_mean_rewards
+        self.sample_mean_rewards += deviation / self.count
 
     @staticmethod
     def softmax_rows(a):
