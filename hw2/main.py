@@ -1,6 +1,6 @@
 import numpy as np
 
-from hw2.utils import (
+from utils import (
     iterative_policy_evaluation,
     order_independent_iterative_policy_evaluation,
 )
