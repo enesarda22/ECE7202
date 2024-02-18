@@ -14,7 +14,7 @@ def value_iteration(goal: int, p_h: float, th: float):
         a = np.arange(1, min(state, goal - state) + 1)
 
         win_states = state + a
-        win_states[win_states == 100] = 0  # send to the terminal state
+        win_states[win_states == goal] = 0  # send to the terminal state
 
         win_return = (state + a == goal).astype(int) + v[win_states]
         loss_return = v[state - a]
@@ -55,7 +55,7 @@ def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float
             a = policy[s - 1]
             s = (s + a) if did_win() else (s - a)
 
-            if s == 100:
+            if s == goal:
                 return s_arr, 1
 
             if s == 0:
