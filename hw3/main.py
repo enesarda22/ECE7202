@@ -23,7 +23,7 @@ if __name__ == "__main__":
     plt.loglog(states, v1[1:], "x-", label="VI evaluation")
     plt.loglog(states, v2, ".-", label="MC evaluation")
 
-    plt.xlabel("States (Capital")
+    plt.xlabel("States (Capital)")
     plt.ylabel("Value (Probability of Winning)")
     plt.title("Evaluated Value Functions With Different Methods")
 
