@@ -37,7 +37,7 @@ def value_iteration(goal: int, p_h: float, th: float):
             return v, policy
 
 
-def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float):
+def every_visit_mc_prediction(policy: np.ndarray, goal: int, p_h: float, th: float):
     v = np.random.randn(goal - 1)
     state_counts = np.zeros(goal - 1, dtype=int)
     v_var = np.ones(goal - 1)  # to track the convergence
@@ -95,7 +95,7 @@ def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float
         )
 
 
-def plot(goal: int, policy: np.array, p_h: float):
+def plot(goal: int, policy: np.ndarray, p_h: float):
     s = np.arange(1, goal)
     plt.plot(s, policy)
 
