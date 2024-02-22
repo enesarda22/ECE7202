@@ -95,13 +95,6 @@ def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float
         )
 
 
-def nan_minimum(a1, a2):
-    nan_idx = np.isnan(a1)
-    a1[nan_idx] = a2[nan_idx]
-
-    return np.minimum(a1, a2)
-
-
 def plot(goal: int, policy: np.array, p_h: float):
     s = np.arange(1, goal)
     plt.plot(s, policy)
