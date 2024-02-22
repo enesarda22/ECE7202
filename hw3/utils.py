@@ -40,7 +40,7 @@ def value_iteration(goal: int, p_h: float, th: float):
 def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float):
     v = np.random.randn(goal - 1)
     state_counts = np.zeros(goal - 1, dtype=int)
-    min_updates = np.full(goal - 1, np.nan)  # to track the convergence
+    v_var = np.ones(goal - 1)  # to track the convergence
     non_converged_count = 0  # to track the non-converged states
 
     def did_win():
@@ -63,7 +63,9 @@ def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float
 
     while True:
         # check convergence
-        non_converged_idx = np.isnan(min_updates) | (min_updates > th)
+        variance_not_reliable = state_counts < 10000
+        variance_not_low = np.sqrt(v_var / (state_counts + 1e-8)) > th
+        non_converged_idx = variance_not_reliable | variance_not_low
         if ~np.any(non_converged_idx):
             return v
 
@@ -85,9 +87,11 @@ def every_visit_mc_prediction(policy: np.array, goal: int, p_h: float, th: float
         update = step_size * diff
         v[unique_states - 1] += update
 
-        # update minimum update values to check for convergence
-        min_updates[unique_states - 1] = nan_minimum(
-            min_updates[unique_states - 1], np.abs(update)
+        # update the sample variance of value estimates
+        v_var[unique_states - 1] += step_size * (
+            np.mean((return_ - v[unique_states - 1]) ** 2)
+            - v_var[unique_states - 1]
+            + (state_counts[unique_states - 1] / counts - 1) * update**2
         )
 
 
