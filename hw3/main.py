@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from hw3.utils import value_iteration, plot, every_visit_mc_prediction
+from utils import value_iteration, plot, every_visit_mc_prediction
 
 if __name__ == "__main__":
     np.random.seed(42)
