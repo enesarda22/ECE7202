@@ -1,12 +1,13 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from utils import q_learning
+from utils import q_learning, sarsa
 
 if __name__ == "__main__":
-    alpha = 0.1
+    alpha = 0.5
     eps = 0.1
     n_episodes = 500
+    n_experiments = 1000
 
     n_states = 37  # 0-start, -1-terminal
     n_actions = 4  # 0-up, 1-down, 2-left, 3-right
@@ -43,12 +44,46 @@ if __name__ == "__main__":
         alpha=alpha,
         eps=eps,
         n_episodes=n_episodes,
+        n_experiments=n_experiments,
+    )
+    mean_accumulated_rewards_q = np.mean(accumulated_rewards, axis=0)
+    q_se = np.std(accumulated_rewards, axis=0) / np.sqrt(n_experiments - 1)
+
+    accumulated_rewards = sarsa(
+        state_transition_mat=state_transition_mat,
+        reward_mat=reward_mat,
+        alpha=alpha,
+        eps=eps,
+        n_episodes=n_episodes,
+        n_experiments=n_experiments,
+    )
+    mean_accumulated_rewards_sarsa = np.mean(accumulated_rewards, axis=0)
+    sarsa_se = np.std(accumulated_rewards, axis=0) / np.sqrt(n_experiments - 1)
+
+    episodes = np.arange(1, n_episodes + 1)
+    plt.plot(episodes, mean_accumulated_rewards_q, "C0", label="Q-Learning")
+    plt.fill_between(
+        episodes,
+        mean_accumulated_rewards_q - q_se,
+        mean_accumulated_rewards_q + q_se,
+        alpha=0.2,
+        color="C0",
     )
 
-    plt.plot(np.arange(1, n_episodes + 1), accumulated_rewards)
+    plt.plot(episodes, mean_accumulated_rewards_sarsa, "C1", label="SARSA")
+    plt.fill_between(
+        episodes,
+        mean_accumulated_rewards_sarsa - sarsa_se,
+        mean_accumulated_rewards_sarsa + sarsa_se,
+        alpha=0.2,
+        color="C1",
+    )
 
+    plt.title("Accumulated Rewards with Different TD Methods")
     plt.xlabel("Episodes")
     plt.ylabel("Accumulated Reward")
 
+    plt.ylim([-100, -20])
+    plt.legend(loc="lower right")
     plt.grid()
     plt.show()
