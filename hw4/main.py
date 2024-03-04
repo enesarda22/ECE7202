@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from utils import q_learning, sarsa
+from utils import q_learning, sarsa, print_policy
 
 if __name__ == "__main__":
     alpha = 0.5
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     reward_mat[bottom_row, 1] = -100.0
     reward_mat[0, 3] = -100.0
 
-    accumulated_rewards = q_learning(
+    accumulated_rewards, greedy_policy = q_learning(
         state_transition_mat=state_transition_mat,
         reward_mat=reward_mat,
         alpha=alpha,
@@ -46,10 +46,13 @@ if __name__ == "__main__":
         n_episodes=n_episodes,
         n_experiments=n_experiments,
     )
+    print("Q-Learning Greedy Policy:")
+    print_policy(greedy_policy, state_transition_mat)
+
     mean_accumulated_rewards_q = np.mean(accumulated_rewards, axis=0)
     q_se = np.std(accumulated_rewards, axis=0) / np.sqrt(n_experiments - 1)
 
-    accumulated_rewards = sarsa(
+    accumulated_rewards, greedy_policy = sarsa(
         state_transition_mat=state_transition_mat,
         reward_mat=reward_mat,
         alpha=alpha,
@@ -57,6 +60,9 @@ if __name__ == "__main__":
         n_episodes=n_episodes,
         n_experiments=n_experiments,
     )
+    print("SARSA Greedy Policy:")
+    print_policy(greedy_policy, state_transition_mat)
+
     mean_accumulated_rewards_sarsa = np.mean(accumulated_rewards, axis=0)
     sarsa_se = np.std(accumulated_rewards, axis=0) / np.sqrt(n_experiments - 1)
 

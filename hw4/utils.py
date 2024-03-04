@@ -34,7 +34,8 @@ def q_learning(
 
             ongoing_exp = s != -1
 
-    return accumulated_rewards
+    greedy_policy = np.argmax(np.mean(q, axis=0), axis=1)
+    return accumulated_rewards, greedy_policy
 
 
 def sarsa(
@@ -71,7 +72,30 @@ def sarsa(
 
             ongoing_exp = s != -1
 
-    return accumulated_rewards
+    greedy_policy = np.argmax(np.mean(q, axis=0), axis=1)
+    return accumulated_rewards, greedy_policy
+
+
+def print_policy(policy, state_transition_mat):
+    s = 0
+    while s != -1:
+        a = policy[s]
+        if a == 0:
+            action = "Up"
+        elif a == 1:
+            action = "Down"
+        elif a == 2:
+            action = "Left"
+        elif a == 3:
+            action = "Right"
+        else:
+            raise ValueError("Action can only be 0, 1, 2, 3.")
+
+        s = state_transition_mat[s, a]
+        if s == -1:
+            print(f"{action}\n")
+        else:
+            print(f"{action} -> ", end="")
 
 
 def _choose_eps_greedy(values, eps):
