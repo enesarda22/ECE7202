@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 from utils import q_learning, sarsa, print_policy
 
 if __name__ == "__main__":
+    np.random.seed(42)
+
     alpha = 0.5
     eps = 0.1
     n_episodes = 500
