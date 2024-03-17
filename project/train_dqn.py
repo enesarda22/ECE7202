@@ -20,13 +20,14 @@ if __name__ == "__main__":
     BATCH_SIZE = 128
     GAMMA = 0.99
     EPS_START = 0.9
-    EPS_END = 0.01
+    EPS_END = 0.001
     EPS_DECAY = 1000  # controls the decay rate
-    TAU = 0.005
-    LR = 1e-4
+    TAU = 0.01
+    LR = 2.65e-3
+    EARLY_STOP = 20
 
     step = 0  # to keep track of the eps decay
-    num_episodes = 600
+    num_episodes = 500
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     env = gym.make("CartPole-v1")
@@ -40,11 +41,14 @@ if __name__ == "__main__":
     target_net.load_state_dict(policy_net.state_dict())
 
     optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+
     memory = ReplayMemory(10000)
 
     episode_durations = []
 
     start_time = time.time()
+    early_stop_count = 0
     for i_episode in tqdm(range(num_episodes)):
         # initialize the environment and get its state
         state, info = env.reset()
@@ -94,10 +98,18 @@ if __name__ == "__main__":
 
             step += 1
             if terminated or truncated:
+                if t == 499:
+                    early_stop_count += 1
+                else:
+                    early_stop_count = 0
+
                 episode_durations.append(t + 1)
                 break
+        scheduler.step()
+        if early_stop_count > EARLY_STOP:
+            break
     end_time = time.time()
     print(f"Training time: {end_time - start_time:.2f} seconds")
 
-    plot_durations(episode_durations)
+    plot_durations(episode_durations, w=EARLY_STOP)
     torch.save(target_net.state_dict(), "policy_net.pt")

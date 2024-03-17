@@ -15,12 +15,14 @@ class DQN(nn.Module):
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
         self.layer1 = nn.Linear(n_observations, 128)
+        self.prelu_1 = nn.PReLU()
         self.layer2 = nn.Linear(128, 128)
-        self.layer3 = nn.Linear(128, n_actions)
+        self.prelu_2 = nn.PReLU()
+        self.layer3 = nn.Linear(128,  n_actions)
 
     def forward(self, x):  # returns the action value function approximation
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
+        x = self.prelu_1(self.layer1(x))
+        x = self.prelu_2(self.layer2(x))
         return self.layer3(x)
 
 
@@ -80,7 +82,7 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
     return loss
 
 
-def plot_durations(episode_durations, w=50):
+def plot_durations(episode_durations, w=25):
     durations_t = np.array(episode_durations)
     padded_durations_t = np.concatenate([np.zeros(w - 1), durations_t])
     moving_avg = np.convolve(padded_durations_t, np.ones(w), "valid") / w
