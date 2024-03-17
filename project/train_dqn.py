@@ -45,7 +45,7 @@ if __name__ == "__main__":
     for i_episode in tqdm(range(num_episodes)):
         # initialize the environment and get its state
         state, info = env.reset()
-        state = torch.FloatTensor(state, device=device).unsqueeze(0)
+        state = torch.tensor(state, device=device, dtype=torch.float32).unsqueeze(0)
         for t in count():
             eps = EPS_END + (EPS_START - EPS_END) * math.exp(-step / EPS_DECAY)
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             if terminated:
                 next_state = None
             else:
-                next_state = torch.FloatTensor(observation, device=device).unsqueeze(0)
+                next_state = torch.tensor(observation, device=device, dtype=torch.float32).unsqueeze(0)
 
             # store the transition in memory
             memory.push(state, action, next_state, reward)
