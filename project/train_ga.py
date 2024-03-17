@@ -1,5 +1,6 @@
 import gymnasium as gym
 import numpy as np
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 import time
 
@@ -56,8 +57,9 @@ def calculate_fitness(policy, env):
 
 def genetic_algorithm(env, generations=50, population_size=10):
     population = [Policy() for _ in range(population_size)]
-    fitness_scores = []  # Initialize fitness_scores outside the loop
 
+    best_fitness_scores = []
+    fitness_scores = []
     for _ in tqdm(range(generations), desc="Generation"):
         fitness_scores = [calculate_fitness(policy, env) for policy in population]
 
@@ -75,13 +77,14 @@ def genetic_algorithm(env, generations=50, population_size=10):
             children.append(child1)
 
         population = survivors + children
+        best_fitness_scores.append(max(fitness_scores))
 
-    if population and fitness_scores:
+    if population and best_fitness_scores:
         best_fitness = max(fitness_scores)
         best_policy_index = fitness_scores.index(best_fitness)
-        return population[best_policy_index]
+        return population[best_policy_index], best_fitness_scores
     else:
-        return Policy()
+        return Policy(), best_fitness_scores
 
 
 def play_cartpole_with_policy(env, policy, episodes=5):
@@ -135,12 +138,21 @@ def play_cartpole_with_policy(env, policy, episodes=5):
 env = gym.make("CartPole-v1")
 
 start_time = time.time()  # Start time
-best_policy = genetic_algorithm(env)
+best_policy, best_fitness_scores = genetic_algorithm(env)
 end_time = time.time()  # End time
-print(f"Execution time: {end_time - start_time} seconds")
+print(f"Training time: {end_time - start_time:.2f} seconds")
 
 if best_policy:
     print("Best policy rules:", best_policy.rules)
     play_cartpole_with_policy(env, best_policy)
+
+    plt.plot(np.arange(1, len(best_fitness_scores) + 1), best_fitness_scores)
+
+    plt.title("Genetic Algorithm Result")
+    plt.xlabel("Generation")
+    plt.ylabel("Duration")
+
+    plt.grid()
+    plt.show()
 else:
     print("Failed to evolve a policy.")

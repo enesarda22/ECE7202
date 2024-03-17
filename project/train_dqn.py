@@ -1,3 +1,5 @@
+import time
+
 import gymnasium as gym
 import math
 from itertools import count
@@ -42,6 +44,7 @@ if __name__ == "__main__":
 
     episode_durations = []
 
+    start_time = time.time()
     for i_episode in tqdm(range(num_episodes)):
         # initialize the environment and get its state
         state, info = env.reset()
@@ -55,7 +58,9 @@ if __name__ == "__main__":
             if terminated:
                 next_state = None
             else:
-                next_state = torch.tensor(observation, device=device, dtype=torch.float32).unsqueeze(0)
+                next_state = torch.tensor(
+                    observation, device=device, dtype=torch.float32
+                ).unsqueeze(0)
 
             # store the transition in memory
             memory.push(state, action, next_state, reward)
@@ -91,6 +96,8 @@ if __name__ == "__main__":
             if terminated or truncated:
                 episode_durations.append(t + 1)
                 break
+    end_time = time.time()
+    print(f"Training time: {end_time - start_time:.2f} seconds")
 
     plot_durations(episode_durations)
     torch.save(target_net.state_dict(), "policy_net.pt")

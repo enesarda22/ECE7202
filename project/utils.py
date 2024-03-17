@@ -60,8 +60,10 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
     )
     non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
     state_batch = torch.cat(batch.state)
-    action_batch = torch.tensor(batch.action, device=device, dtype=torch.int64).unsqueeze(1)
-    reward_batch = torch.tensor(batch.reward, device=device,  dtype=torch.int64)
+    action_batch = torch.tensor(
+        batch.action, device=device, dtype=torch.int64
+    ).unsqueeze(1)
+    reward_batch = torch.tensor(batch.reward, device=device, dtype=torch.int64)
 
     # compute Q(s_t, a) according to policy_net
     state_action_values = policy_net(state_batch).gather(1, action_batch)
@@ -78,17 +80,18 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
     return loss
 
 
-def plot_durations(episode_durations, w=100):
+def plot_durations(episode_durations, w=50):
     durations_t = np.array(episode_durations)
     padded_durations_t = np.concatenate([np.zeros(w - 1), durations_t])
     moving_avg = np.convolve(padded_durations_t, np.ones(w), "valid") / w
 
-    plt.plot(durations_t)
-    plt.plot(moving_avg)
+    plt.plot(durations_t, label="Behavior Policy Result")
+    plt.plot(moving_avg, label="Moving Average")
 
-    plt.title("Result")
+    plt.title("Gradient Based Method Result")
     plt.xlabel("Episode")
     plt.ylabel("Duration")
 
+    plt.legend()
     plt.grid()
     plt.show()
