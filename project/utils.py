@@ -7,8 +7,34 @@ from matplotlib import pyplot as plt
 from torch import nn
 import torch.nn.functional as F
 
-
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+
+
+class CNN(nn.Module):
+    def __init__(self, n_actions):
+        super(CNN, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=8, stride=4)
+        self.relu1 = nn.PReLU()
+
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2)
+        self.relu2 = nn.PReLU()
+
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1)
+        self.relu3 = nn.PReLU()
+
+        self.fc1 = nn.Linear(64 * 7 * 7, 512)
+        self.relu4 = nn.PReLU()
+
+        self.fc2 = nn.Linear(512, n_actions)
+
+    def forward(self, x):
+        x = self.relu1(self.conv1(x))
+        x = self.relu2(self.conv2(x))
+        x = self.relu3(self.conv3(x))
+        x = x.contiguous().view(-1, 64 * 7 * 7)
+        x = self.relu4(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
 
 class DQN(nn.Module):
@@ -18,12 +44,20 @@ class DQN(nn.Module):
         self.prelu_1 = nn.PReLU()
         self.layer2 = nn.Linear(128, 128)
         self.prelu_2 = nn.PReLU()
-        self.layer3 = nn.Linear(128,  n_actions)
+        self.layer3 = nn.Linear(128, n_actions)
 
     def forward(self, x):  # returns the action value function approximation
         x = self.prelu_1(self.layer1(x))
         x = self.prelu_2(self.layer2(x))
         return self.layer3(x)
+
+
+def clip_reward(reward):
+    if reward > 0.0:
+        return min(1.0, reward)
+    elif reward < 0.0:
+        return max(-1.0, reward)
+    return reward
 
 
 class ReplayMemory:
