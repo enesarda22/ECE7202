@@ -1,9 +1,7 @@
 import time
 
 import gym
-from gym.wrappers import AtariPreprocessing, FrameStack
-
-import matplotlib.pyplot as plt
+from gym.wrappers import AtariPreprocessing
 
 import math
 from itertools import count
@@ -23,19 +21,21 @@ from utils import (
 if __name__ == "__main__":
     BATCH_SIZE = 128
     GAMMA = 0.99
-    EPS_START = 0.9
-    EPS_END = 0.1
-    EPS_DECAY = 1000  # controls the decay rate
-    TAU = 0.01
-    LR = 5e-3
-    N_MEMORY = 50000
-    GAME = "BoxingNoFrameskip-v4"
+    EPS_START = 0.99
+    EPS_END = 0.01
+    EPS_DECAY = 10000  # controls the decay rate
+    LR = 2.5e-4
+    N_MEMORY = 100000
+    GAME = "BoxingNoFrameskip-v4"  # ALl games should be with NoFrameskip to compatible with preprocessor!
+    NUM_EPISODES = 250
+    UPDATE_C = 1000
+
     step = 0  # to keep track of the eps decay
-    num_episodes = 250
+    update_step = 0  # to keep track of the target net update, HARD UPDATE NOT SOFT
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    env = gym.make(GAME, repeat_action_probability=0.0)
+    env = gym.make(GAME, repeat_action_probability=0.0)  # buttons will not be stuck
     env = AtariPreprocessing(env, frame_skip=4)
 
     state, info = env.reset()
@@ -47,14 +47,13 @@ if __name__ == "__main__":
     target_net.load_state_dict(policy_net.state_dict())
 
     optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
     memory = ReplayMemory(N_MEMORY)
 
     episode_durations = []
     start_time = time.time()
     rewards_list = []
 
-    for i_episode in tqdm(range(num_episodes)):
+    for i_episode in tqdm(range(NUM_EPISODES)):
         # initialize the environment and get its state
         state, info = env.reset()
         state = (torch.tensor(state, device=device, dtype=torch.float32).unsqueeze(0)).unsqueeze(0)
@@ -94,18 +93,14 @@ if __name__ == "__main__":
                     param.grad.data.clamp_(-1, 1)
                 optimizer.step()
 
-            # soft update of the target network's weights
-            target_net_state_dict = target_net.state_dict()
-            policy_net_state_dict = policy_net.state_dict()
-            for key in policy_net_state_dict:
-                diff = policy_net_state_dict[key] - target_net_state_dict[key]
-                target_net_state_dict[key] += diff * TAU
-            target_net.load_state_dict(target_net_state_dict)
+            if update_step > UPDATE_C:
+                target_net.load_state_dict(policy_net.state_dict())
 
             step += 1
+            update_step += 1
+
             if terminated or truncated:
                 episode_durations.append(t + 1)
-                scheduler.step()
                 rewards_list.append(total_reward)
                 break
 

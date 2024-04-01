@@ -1,7 +1,7 @@
 import time
 
 import gym
-from gym.wrappers import AtariPreprocessing, FrameStack
+from gym.wrappers import AtariPreprocessing
 
 import torch
 from train_dqn_frostbite import CNN
@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    env = gym.make(GAME, render_mode="human")
+    env = gym.make(GAME, render_mode="human", repeat_action_probability=0.0)
     env = AtariPreprocessing(env, screen_size=84, grayscale_obs=True)
 
     state, _ = env.reset()
