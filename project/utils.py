@@ -131,3 +131,21 @@ def plot_durations(episode_durations, w=25):
     plt.legend()
     plt.grid()
     plt.show()
+
+
+def plot_rewards(episode_rewards, w=25):
+    rewards_t = np.array(episode_rewards)
+    padded_rewards_t = np.concatenate([np.zeros(w - 1), rewards_t])
+    moving_avg = np.convolve(padded_rewards_t, np.ones(w), "valid") / w
+
+    plt.plot(rewards_t, label="Behavior Policy Result")
+    plt.plot(moving_avg, label="Moving Average")
+
+    plt.title("Gradient Based Method Result")
+    plt.xlabel("Episode")
+    plt.ylabel("Cumulative Rewards")
+
+    plt.legend()
+    plt.grid()
+    plt.show()
+

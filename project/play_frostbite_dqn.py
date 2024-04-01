@@ -15,7 +15,7 @@ if __name__ == "__main__":
     n_observations = len(state)
     n_actions = env.action_space.n
 
-    policy_net = CNN(n_observations, n_actions).to(device)
+    policy_net = CNN(n_actions).to(device)
     policy_net.load_state_dict(torch.load("policy_net_frostbite.pt", map_location=device))
 
     for episode_i in range(10000):
