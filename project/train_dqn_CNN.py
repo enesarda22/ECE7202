@@ -1,6 +1,7 @@
 import time
 
 import gym
+import numpy as np
 from gym.wrappers import AtariPreprocessing
 
 import math
@@ -14,29 +15,26 @@ from utils import (
     ReplayMemory,
     choose_eps_greedy,
     calculate_loss,
-    plot_durations,
-    plot_rewards
+    plot_rewards,
+    evaluate_cnn,
 )
 
 if __name__ == "__main__":
     BATCH_SIZE = 128
     GAMMA = 0.99
     EPS_START = 0.99
-    EPS_END = 0.01
-    EPS_DECAY = 10000  # controls the decay rate
+    EPS_END = 0.1
+    EPS_DECAY = 1000000  # controls the decay rate
     LR = 2.5e-4
     N_MEMORY = 100000
-    GAME = "BoxingNoFrameskip-v4"  # ALl games should be with NoFrameskip to compatible with preprocessor!
+    GAME = "BoxingNoFrameskip-v4"  # should be with NoFrameskip
     NUM_EPISODES = 250
-    UPDATE_C = 1000
-
-    step = 0  # to keep track of the eps decay
-    update_step = 0  # to keep track of the target net update, HARD UPDATE NOT SOFT
+    UPDATE_C = 10000
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    env = gym.make(GAME, repeat_action_probability=0.0)  # buttons will not be stuck
-    env = AtariPreprocessing(env, frame_skip=4)
+    env = gym.make(GAME)
+    env = AtariPreprocessing(env)
 
     state, info = env.reset()
     n_observations = len(state)
@@ -49,26 +47,27 @@ if __name__ == "__main__":
     optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
     memory = ReplayMemory(N_MEMORY)
 
-    episode_durations = []
+    step = 0  # to keep track of the eps decay
+    mean_rewards_list = []
     start_time = time.time()
-    rewards_list = []
 
     for i_episode in tqdm(range(NUM_EPISODES)):
         # initialize the environment and get its state
-        state, info = env.reset()
-        state = (torch.tensor(state, device=device, dtype=torch.float32).unsqueeze(0)).unsqueeze(0)
-        total_reward = 0
+        state, _ = env.reset()
+        state = torch.FloatTensor(state, device=device)
+        state = state[None, None, ...]
+
         for t in count():
             eps = EPS_END + (EPS_START - EPS_END) * math.exp(-step / EPS_DECAY)
             action = choose_eps_greedy(env, policy_net, state, eps)
-            observation, reward, terminated, truncated, _ = env.step(action)
-            total_reward += pow(GAMMA, t) * reward
+
+            next_state, reward, terminated, truncated, _ = env.step(action)
+
             if terminated:
                 next_state = None
             else:
-                next_state = (torch.tensor(
-                    observation, device=device, dtype=torch.float32
-                ).unsqueeze(0)).unsqueeze(0)
+                next_state = torch.FloatTensor(next_state, device=device)
+                next_state = next_state[None, None, ...]
 
             # store the transition in memory
             memory.push(state, action, next_state, reward)
@@ -89,25 +88,25 @@ if __name__ == "__main__":
             if loss is not None:
                 optimizer.zero_grad()
                 loss.backward()
-                for param in policy_net.parameters():
-                    param.grad.data.clamp_(-1, 1)
                 optimizer.step()
 
-            if update_step > UPDATE_C:
+            if step > UPDATE_C:
                 target_net.load_state_dict(policy_net.state_dict())
 
             step += 1
-            update_step += 1
 
             if terminated or truncated:
-                episode_durations.append(t + 1)
-                rewards_list.append(total_reward)
+                rewards_list = evaluate_cnn(
+                    env=env,
+                    policy_net=policy_net,
+                    gamma=GAMMA,
+                    device=device,
+                )
+                mean_rewards_list.append(np.mean(rewards_list))
                 break
 
     end_time = time.time()
     print(f"Training time: {end_time - start_time:.2f} seconds")
 
-    plot_durations(episode_durations, w=50)
-    plot_rewards(rewards_list, w=50)
+    plot_rewards(mean_rewards_list, w=50)
     torch.save(target_net.state_dict(), f"policy_net_{GAME}.pt")
-

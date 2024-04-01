@@ -1,5 +1,6 @@
 from collections import deque, namedtuple
 import random
+from itertools import count
 
 import numpy as np
 import torch
@@ -96,10 +97,8 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
     )
     non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
     state_batch = torch.cat(batch.state)
-    action_batch = torch.tensor(
-        batch.action, device=device, dtype=torch.int64
-    ).unsqueeze(1)
-    reward_batch = torch.tensor(batch.reward, device=device, dtype=torch.int64)
+    action_batch = torch.LongTensor(batch.action, device=device).unsqueeze(1)
+    reward_batch = torch.LongTensor(batch.reward, device=device)
 
     # compute Q(s_t, a) according to policy_net
     state_action_values = policy_net(state_batch).gather(1, action_batch)
@@ -110,16 +109,52 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
         next_state_values[non_final_mask] = (
             target_net(non_final_next_states).max(1).values
         )
-
     expected_state_action_values = reward_batch + gamma * next_state_values
+
     loss = F.smooth_l1_loss(state_action_values.flatten(), expected_state_action_values)
     return loss
 
 
+def evaluate_cnn(env, policy_net, gamma, device, num_episodes=30, eps=0.05):
+    rewards_list = []
+
+    for _ in range(num_episodes):
+        # initialize the environment and get its state
+        state, _ = env.reset()
+        state = torch.FloatTensor(state, device=device)
+        state = state[None, None, ...]
+
+        total_reward = 0
+        for t in count():
+            action = choose_eps_greedy(env, policy_net, state, eps)
+
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            total_reward += pow(gamma, t) * reward
+
+            if terminated:
+                next_state = None
+            else:
+                next_state = torch.FloatTensor(next_state, device=device)
+                next_state = next_state[None, None, ...]
+
+            # move to the next state
+            state = next_state
+
+            if terminated or truncated:
+                rewards_list.append(total_reward)
+                break
+
+    return rewards_list
+
+
 def plot_durations(episode_durations, w=25):
     durations_t = np.array(episode_durations)
-    padded_durations_t = np.concatenate([np.zeros(w - 1), durations_t])
+    pre_padding = np.ones(int((w - 1) / 2)) * durations_t[0]
+    post_padding = np.ones(int((w - 1) / 2)) * durations_t[-1]
+
+    padded_durations_t = np.concatenate([pre_padding, durations_t, post_padding])
     moving_avg = np.convolve(padded_durations_t, np.ones(w), "valid") / w
+    moving_avg = moving_avg[: len(durations_t)]
 
     plt.plot(durations_t, label="Behavior Policy Result")
     plt.plot(moving_avg, label="Moving Average")
@@ -135,8 +170,12 @@ def plot_durations(episode_durations, w=25):
 
 def plot_rewards(episode_rewards, w=25):
     rewards_t = np.array(episode_rewards)
-    padded_rewards_t = np.concatenate([np.zeros(w - 1), rewards_t])
+    pre_padding = np.ones(int((w - 1) / 2)) * rewards_t[0]
+    post_padding = np.ones(int((w - 1) / 2)) * rewards_t[-1]
+
+    padded_rewards_t = np.concatenate([pre_padding, rewards_t, post_padding])
     moving_avg = np.convolve(padded_rewards_t, np.ones(w), "valid") / w
+    moving_avg = moving_avg[: len(rewards_t)]
 
     plt.plot(rewards_t, label="Behavior Policy Result")
     plt.plot(moving_avg, label="Moving Average")
@@ -148,4 +187,3 @@ def plot_rewards(episode_rewards, w=25):
     plt.legend()
     plt.grid()
     plt.show()
-
