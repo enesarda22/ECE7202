@@ -23,21 +23,21 @@ from utils import (
 )
 
 if __name__ == "__main__":
-    BATCH_SIZE = 256
+    BATCH_SIZE = 128
     GAMMA = 0.99
     EPS_START = 1.0
     EPS_END = 1e-6
     EPS_DECAY = 50000  # controls the decay rate
     LR = 2.5e-4
     N_MEMORY = 1000000
-    GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
-    NUM_EPISODES = 200
-    UPDATE_C = 250
+    GAME = "PongNoFrameskip-v4"  # should be with NoFrameskip
+    NUM_EPISODES = 500
+    UPDATE_C = 350
     set_seed()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    env = gym.make(GAME)
+    env = gym.make(GAME, repeat_action_probability=0.0)
     env = AtariPreprocessing(env, grayscale_obs=True, scale_obs=True)
 
     state, info = env.reset()

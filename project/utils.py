@@ -181,6 +181,7 @@ def plot_rewards(episode_rewards, w=25):
 
     plt.legend()
     plt.grid()
+    plt.savefig(f'Plot.png', dpi=400)
     plt.show()
 
 def set_seed():

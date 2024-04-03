@@ -8,7 +8,7 @@ from train_dqn_frostbite import CNN
 from utils import choose_eps_greedy
 
 if __name__ == "__main__":
-    GAME = "PongNoFrameskip-v4"  # should be with NoFrameskip
+    GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
