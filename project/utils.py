@@ -9,33 +9,32 @@ from torch import nn
 import torch.nn.functional as F
 
 Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+RANDOM_STATE = 42
 
 
 class CNN(nn.Module):
     def __init__(self, n_actions):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=8, stride=4)
-        self.relu1 = nn.PReLU()
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=8, stride=4)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.bn3 = nn.BatchNorm2d(64)
+        self.fc4 = nn.Linear(7 * 7 * 64, 512)
+        self.head = nn.Linear(512, n_actions)
 
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2)
-        self.relu2 = nn.PReLU()
-
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1)
-        self.relu3 = nn.PReLU()
-
-        self.fc1 = nn.Linear(64 * 7 * 7, 512)
-        self.relu4 = nn.PReLU()
-
-        self.fc2 = nn.Linear(512, n_actions)
+        self.prelu1 = nn.PReLU()
+        self.prelu2 = nn.PReLU()
+        self.prelu3 = nn.PReLU()
+        self.prelu4 = nn.PReLU()
 
     def forward(self, x):
-        x = self.relu1(self.conv1(x))
-        x = self.relu2(self.conv2(x))
-        x = self.relu3(self.conv3(x))
-        x = x.contiguous().view(-1, 64 * 7 * 7)
-        x = self.relu4(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        x = self.prelu1(self.bn1(self.conv1(x)))
+        x = self.prelu2(self.bn2(self.conv2(x)))
+        x = self.prelu3(self.bn3(self.conv3(x)))
+        x = self.prelu4(self.fc4(x.view(x.size(0), -1)))
+        return self.head(x)
 
 
 class DQN(nn.Module):
@@ -54,11 +53,7 @@ class DQN(nn.Module):
 
 
 def clip_reward(reward):
-    if reward > 0.0:
-        return min(1.0, reward)
-    elif reward < 0.0:
-        return max(-1.0, reward)
-    return reward
+    return np.sign(reward)
 
 
 class ReplayMemory:
@@ -97,8 +92,8 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
     )
     non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
     state_batch = torch.cat(batch.state)
-    action_batch = torch.LongTensor(batch.action, device=device).unsqueeze(1)
-    reward_batch = torch.LongTensor(batch.reward, device=device)
+    action_batch = torch.tensor(batch.action, device=device, dtype=torch.int64).unsqueeze(1)
+    reward_batch = torch.tensor(batch.reward, device=device, dtype=torch.int64)
 
     # compute Q(s_t, a) according to policy_net
     state_action_values = policy_net(state_batch).gather(1, action_batch)
@@ -121,7 +116,7 @@ def evaluate_cnn(env, policy_net, gamma, device, num_episodes=30, eps=0.05):
     for _ in range(num_episodes):
         # initialize the environment and get its state
         state, _ = env.reset()
-        state = torch.FloatTensor(state, device=device)
+        state = torch.tensor(state, device=device, dtype=torch.float32)
         state = state[None, None, ...]
 
         total_reward = 0
@@ -134,7 +129,7 @@ def evaluate_cnn(env, policy_net, gamma, device, num_episodes=30, eps=0.05):
             if terminated:
                 next_state = None
             else:
-                next_state = torch.FloatTensor(next_state, device=device)
+                next_state = torch.tensor(next_state, device=device, dtype=torch.float32)
                 next_state = next_state[None, None, ...]
 
             # move to the next state
@@ -187,3 +182,12 @@ def plot_rewards(episode_rewards, w=25):
     plt.legend()
     plt.grid()
     plt.show()
+
+def set_seed():
+    random.seed(RANDOM_STATE)
+    torch.manual_seed(RANDOM_STATE)
+    torch.cuda.manual_seed(RANDOM_STATE)
+    np.random.seed(RANDOM_STATE)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmarks = False
+    torch.autograd.set_detect_anomaly(True)

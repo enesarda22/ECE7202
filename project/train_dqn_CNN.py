@@ -10,6 +10,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 
+
 from utils import (
     CNN,
     ReplayMemory,
@@ -17,24 +18,27 @@ from utils import (
     calculate_loss,
     plot_rewards,
     evaluate_cnn,
+    clip_reward,
+    set_seed
 )
 
 if __name__ == "__main__":
-    BATCH_SIZE = 128
+    BATCH_SIZE = 256
     GAMMA = 0.99
-    EPS_START = 0.99
-    EPS_END = 0.1
-    EPS_DECAY = 1000000  # controls the decay rate
+    EPS_START = 1.0
+    EPS_END = 1e-6
+    EPS_DECAY = 50000  # controls the decay rate
     LR = 2.5e-4
-    N_MEMORY = 100000
-    GAME = "BoxingNoFrameskip-v4"  # should be with NoFrameskip
-    NUM_EPISODES = 250
-    UPDATE_C = 10000
+    N_MEMORY = 1000000
+    GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
+    NUM_EPISODES = 200
+    UPDATE_C = 250
+    set_seed()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = gym.make(GAME)
-    env = AtariPreprocessing(env)
+    env = AtariPreprocessing(env, grayscale_obs=True, scale_obs=True)
 
     state, info = env.reset()
     n_observations = len(state)
@@ -45,6 +49,7 @@ if __name__ == "__main__":
     target_net.load_state_dict(policy_net.state_dict())
 
     optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
+
     memory = ReplayMemory(N_MEMORY)
 
     step = 0  # to keep track of the eps decay
@@ -54,19 +59,20 @@ if __name__ == "__main__":
     for i_episode in tqdm(range(NUM_EPISODES)):
         # initialize the environment and get its state
         state, _ = env.reset()
-        state = torch.FloatTensor(state, device=device)
+        state = torch.tensor(state, device=device, dtype=torch.float32)
         state = state[None, None, ...]
 
         for t in count():
-            eps = EPS_END + (EPS_START - EPS_END) * math.exp(-step / EPS_DECAY)
+            eps = EPS_END + (EPS_START - EPS_END) * math.exp(-1.0 * step / EPS_DECAY)
             action = choose_eps_greedy(env, policy_net, state, eps)
 
             next_state, reward, terminated, truncated, _ = env.step(action)
+            reward = clip_reward(reward)
 
             if terminated:
                 next_state = None
             else:
-                next_state = torch.FloatTensor(next_state, device=device)
+                next_state = torch.tensor(next_state, device=device, dtype=torch.float32)
                 next_state = next_state[None, None, ...]
 
             # store the transition in memory
@@ -88,9 +94,11 @@ if __name__ == "__main__":
             if loss is not None:
                 optimizer.zero_grad()
                 loss.backward()
+                for param in policy_net.parameters():
+                    param.grad.data.clamp_(-1, 1)
                 optimizer.step()
 
-            if step > UPDATE_C:
+            if step % UPDATE_C == 0:
                 target_net.load_state_dict(policy_net.state_dict())
 
             step += 1
@@ -101,6 +109,7 @@ if __name__ == "__main__":
                     policy_net=policy_net,
                     gamma=GAMMA,
                     device=device,
+                    num_episodes=3
                 )
                 mean_rewards_list.append(np.mean(rewards_list))
                 break

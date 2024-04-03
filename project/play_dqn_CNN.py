@@ -5,9 +5,10 @@ from gym.wrappers import AtariPreprocessing
 
 import torch
 from train_dqn_frostbite import CNN
+from utils import choose_eps_greedy
 
 if __name__ == "__main__":
-    GAME = "VideoPinballNoFrameskip-v0"
+    GAME = "PongNoFrameskip-v4"  # should be with NoFrameskip
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -26,10 +27,12 @@ if __name__ == "__main__":
         env.render()
 
         for time_i in range(10000):
-            action = policy_net((torch.tensor(
-                    state, device=device, dtype=torch.float32
-                ).unsqueeze(0)).unsqueeze(0)).argmax().item()
+            state = torch.tensor(state, device=device, dtype=torch.float32)
+            state = state[None, None, ...]
+            action = policy_net(state).argmax().item()
+
             state, reward, terminated, truncated, info = env.step(action)
+
             time.sleep(0.01)
 
             if terminated:
