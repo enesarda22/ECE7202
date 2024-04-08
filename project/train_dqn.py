@@ -112,4 +112,4 @@ if __name__ == "__main__":
     print(f"Training time: {end_time - start_time:.2f} seconds")
 
     plot_durations(episode_durations, w=EARLY_STOP)
-    torch.save(target_net.state_dict(), "policy_net.pt")
+    torch.save(target_net.state_dict(), "policy_net_cartpole.pt")
