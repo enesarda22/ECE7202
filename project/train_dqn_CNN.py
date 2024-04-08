@@ -19,11 +19,11 @@ from utils import (
     plot_rewards,
     evaluate_cnn,
     clip_reward,
-    set_seed
+    set_seed,
 )
 
 if __name__ == "__main__":
-    BATCH_SIZE = 128
+    BATCH_SIZE = 64
     GAMMA = 0.99
     EPS_START = 1.0
     EPS_END = 1e-6
@@ -72,7 +72,9 @@ if __name__ == "__main__":
             if terminated:
                 next_state = None
             else:
-                next_state = torch.tensor(next_state, device=device, dtype=torch.float32)
+                next_state = torch.tensor(
+                    next_state, device=device, dtype=torch.float32
+                )
                 next_state = next_state[None, None, ...]
 
             # store the transition in memory
@@ -109,10 +111,13 @@ if __name__ == "__main__":
                     policy_net=policy_net,
                     gamma=GAMMA,
                     device=device,
-                    num_episodes=3
+                    num_episodes=3,
                 )
                 mean_rewards_list.append(np.mean(rewards_list))
                 break
+
+            if i_episode % 500 == 0:
+                torch.save(target_net.state_dict(), f"policy_net_{GAME}_{i_episode}.pt")
 
     end_time = time.time()
     print(f"Training time: {end_time - start_time:.2f} seconds")
