@@ -30,8 +30,8 @@ if __name__ == "__main__":
     EPS_DECAY = 50000  # controls the decay rate
     LR = 2.5e-4
     N_MEMORY = 1000000
-    GAME = "PongNoFrameskip-v4"  # should be with NoFrameskip
-    NUM_EPISODES = 500
+    GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
+    NUM_EPISODES = 2000
     UPDATE_C = 350
     set_seed()
 
