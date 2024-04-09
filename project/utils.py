@@ -79,7 +79,7 @@ def choose_eps_greedy(env, q_net, state, eps):
 
 
 def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
-    if len(memory) < batch_size:
+    if len(memory) < 1000 * batch_size:
         return
 
     transitions = memory.sample(batch_size)
@@ -92,7 +92,9 @@ def calculate_loss(memory, policy_net, target_net, batch_size, gamma, device):
     )
     non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
     state_batch = torch.cat(batch.state)
-    action_batch = torch.tensor(batch.action, device=device, dtype=torch.int64).unsqueeze(1)
+    action_batch = torch.tensor(
+        batch.action, device=device, dtype=torch.int64
+    ).unsqueeze(1)
     reward_batch = torch.tensor(batch.reward, device=device, dtype=torch.int64)
 
     # compute Q(s_t, a) according to policy_net
@@ -129,7 +131,9 @@ def evaluate_cnn(env, policy_net, gamma, device, num_episodes=30, eps=0.05):
             if terminated:
                 next_state = None
             else:
-                next_state = torch.tensor(next_state, device=device, dtype=torch.float32)
+                next_state = torch.tensor(
+                    next_state, device=device, dtype=torch.float32
+                )
                 next_state = next_state[None, None, ...]
 
             # move to the next state
@@ -163,7 +167,7 @@ def plot_durations(episode_durations, w=25):
     plt.show()
 
 
-def plot_rewards(episode_rewards, w=25):
+def plot_rewards(episode_rewards, w=25, name="plot"):
     rewards_t = np.array(episode_rewards)
     pre_padding = np.ones(int((w - 1) / 2)) * rewards_t[0]
     post_padding = np.ones(int((w - 1) / 2)) * rewards_t[-1]
@@ -181,8 +185,9 @@ def plot_rewards(episode_rewards, w=25):
 
     plt.legend()
     plt.grid()
-    plt.savefig(f'Plot.png', dpi=400)
+    plt.savefig(f"{name}.png", dpi=400)
     plt.show()
+
 
 def set_seed():
     random.seed(RANDOM_STATE)

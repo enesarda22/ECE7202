@@ -26,12 +26,12 @@ if __name__ == "__main__":
     BATCH_SIZE = 32
     GAMMA = 0.99
     EPS_START = 1.0
-    EPS_END = 1e-6
+    EPS_END = 0.1
     EPS_DECAY = 50000  # controls the decay rate
     LR = 2.5e-4
     N_MEMORY = 1000000
-    GAME = "MsPacmanNoFrameskip-v4"  # should be with NoFrameskip
-    NUM_EPISODES = 500
+    GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
+    NUM_EPISODES = 5000
     UPDATE_C = 350
     set_seed()
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         state = state[None, None, ...]
 
         for t in count():
-            eps = EPS_END + (EPS_START - EPS_END) * math.exp(-1.0 * step / EPS_DECAY)
+            eps = EPS_END + (EPS_START - EPS_END) * math.exp(-step / EPS_DECAY)
             action = choose_eps_greedy(env, policy_net, state, eps)
 
             next_state, reward, terminated, truncated, _ = env.step(action)
@@ -117,10 +117,13 @@ if __name__ == "__main__":
                 break
 
             if i_episode % 500 == 0:
-                torch.save(target_net.state_dict(), f"policy_net_{GAME}_{i_episode}.pt")
+                torch.save(policy_net.state_dict(), f"policy_net_{GAME}_{i_episode}.pt")
+                plot_rewards(
+                    mean_rewards_list, w=50, name=f"policy_net_{GAME}_{i_episode}.pt"
+                )
 
     end_time = time.time()
     print(f"Training time: {end_time - start_time:.2f} seconds")
 
-    plot_rewards(mean_rewards_list, w=50)
-    torch.save(target_net.state_dict(), f"policy_net_{GAME}.pt")
+    plot_rewards(mean_rewards_list, w=50, name=f"policy_net_{GAME}.pt")
+    torch.save(policy_net.state_dict(), f"policy_net_{GAME}.pt")
