@@ -4,8 +4,8 @@ import gym
 from gym.wrappers import AtariPreprocessing
 
 import torch
-from train_dqn_frostbite import CNN
-from utils import choose_eps_greedy
+
+from utils import CNN
 
 if __name__ == "__main__":
     GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
