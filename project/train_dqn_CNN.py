@@ -116,7 +116,7 @@ if __name__ == "__main__":
                 mean_rewards_list.append(np.mean(rewards_list))
                 break
 
-            if i_episode % 500 == 0:
+            if i_episode % 499 == 0:
                 torch.save(policy_net.state_dict(), f"policy_net_{GAME}_{i_episode}.pt")
                 plot_rewards(
                     mean_rewards_list, w=50, name=f"policy_net_{GAME}_{i_episode}.pt"
