@@ -71,8 +71,15 @@ def calculate_fitness(q_net, env):
     return np.mean(episode_reward)
 
 
-def genetic_algorithm(env, device, generations=Gens, population_size=Pops):
-    population = [CNN(n_actions).to(device) for _ in range(population_size)]
+def genetic_algorithm(
+    env,
+    device,
+    generations=Gens,
+    population_size=Pops,
+    population=None,
+):
+    if population is None:
+        population = [CNN(n_actions).to(device) for _ in range(population_size)]
     best_fitness_scores = []
 
     for _ in tqdm(range(generations), desc="Generation"):

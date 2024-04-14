@@ -10,7 +10,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 
-
+from project.ga_pong import genetic_algorithm
 from utils import (
     CNN,
     ReplayMemory,
@@ -33,6 +33,15 @@ if __name__ == "__main__":
     GAME = "PongNoFrameskip-v4"  # should be with NoFrameskip
     NUM_EPISODES = 500
     UPDATE_C = 350
+
+    GA_FREQ = 50
+    GA_GENS = 10
+    GA_POPS = 10
+    GA_NUM_EPISODES = 10
+    GA_MUT_RATE = 0.5
+    GA_MUT_STR = 0.5
+    GA_REM_SURVIVORS = 5
+
     set_seed()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -116,11 +125,18 @@ if __name__ == "__main__":
                 mean_rewards_list.append(np.mean(rewards_list))
                 break
 
-            if i_episode % 500 == 0 and len(mean_rewards_list) > 0:
-                torch.save(policy_net.state_dict(), f"policy_net_{GAME}_{i_episode}.pt")
-                plot_rewards(
-                    mean_rewards_list, w=50, name=f"policy_net_{GAME}_{i_episode}.pt"
-                )
+        if (i_episode + 1) % GA_FREQ == 0:
+            population = [policy_net, target_net]
+            best_q_net, _ = genetic_algorithm(
+                env=env,
+                device=device,
+                generations=GA_GENS,
+                population_size=GA_POPS,
+                population=population,
+            )
+
+            policy_net.load_state_dict(best_q_net.state_dict())
+            target_net.load_state_dict(best_q_net.state_dict())
 
     end_time = time.time()
     print(f"Training time: {end_time - start_time:.2f} seconds")
