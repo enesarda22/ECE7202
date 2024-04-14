@@ -45,7 +45,8 @@ def calculate_fitness(q_net, env):
 
     for episodes in range(NumEpisodes):
         observation, _ = env.reset()
-        observation = torch.FloatTensor(observation, device=device)[None, None, :, :]
+        observation = torch.tensor(observation, dtype=torch.float, device=device)
+        observation = observation[None, None, :, :]
 
         done = False
 
@@ -60,9 +61,8 @@ def calculate_fitness(q_net, env):
             observation, reward, done, _, info = env.step(
                 action
             )  # Adjust this line based on the output of your env.step()
-            observation = torch.FloatTensor(observation, device=device)[
-                None, None, :, :
-            ]
+            observation = torch.tensor(observation, dtype=torch.float, device=device)
+            observation = observation[None, None, :, :]
 
             total_reward += reward
 
