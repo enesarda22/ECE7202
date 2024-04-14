@@ -107,8 +107,9 @@ def genetic_algorithm(env, device, generations=Gens, population_size=Pops):
 
         population = survivors + children
 
-    best_fitness = max(best_fitness_scores)
-    best_policy_index = best_fitness_scores.index(best_fitness)
+    fitness_scores = [calculate_fitness(q_net, env) for q_net in population]
+    best_fitness = max(fitness_scores)
+    best_policy_index = fitness_scores.index(best_fitness)
     return population[best_policy_index], best_fitness_scores
 
 
