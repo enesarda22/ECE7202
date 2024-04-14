@@ -7,7 +7,7 @@ from tqdm import tqdm
 import time
 from gym.wrappers import AtariPreprocessing
 
-from project.utils import CNN, choose_eps_greedy, plot_rewards
+from utils import CNN, choose_eps_greedy, plot_rewards
 
 Gens = 500
 Pops = 10
@@ -71,8 +71,8 @@ def calculate_fitness(q_net, env):
     return np.mean(episode_reward)
 
 
-def genetic_algorithm(env, generations=Gens, population_size=Pops):
-    population = [CNN(n_actions) for _ in range(population_size)]
+def genetic_algorithm(env, device, generations=Gens, population_size=Pops):
+    population = [CNN(n_actions).to(device) for _ in range(population_size)]
     best_fitness_scores = []
 
     for _ in tqdm(range(generations), desc="Generation"):
@@ -98,9 +98,9 @@ def genetic_algorithm(env, generations=Gens, population_size=Pops):
                 mutation_mask = torch.randn(sd1[key].shape) < MutRate
                 mutations = torch.randn(sd1[key].shape) * MutStr
 
-                child_dict[key] += mutation_mask * mutations
+                child_dict[key] += mutation_mask.to(device) * mutations.to(device)
 
-            child = CNN(n_actions)
+            child = CNN(n_actions).to(device)
             child.load_state_dict(child_dict)
 
             children.append(child)
@@ -119,7 +119,7 @@ env = AtariPreprocessing(env, grayscale_obs=True, scale_obs=True)
 n_actions = env.action_space.n
 
 start_time = time.time()
-best_q_net, best_fitness_scores = genetic_algorithm(env)
+best_q_net, best_fitness_scores = genetic_algorithm(env, device=device)
 end_time = time.time()
 print(f"Training time: {end_time - start_time:.2f} seconds")
 
