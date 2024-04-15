@@ -78,6 +78,7 @@ def genetic_algorithm(
     population_size=Pops,
     population=None,
 ):
+    n_actions = env.action_space.n
     if population is None:
         population = [CNN(n_actions).to(device) for _ in range(population_size)]
     best_fitness_scores = []
