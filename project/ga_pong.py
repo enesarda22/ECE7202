@@ -40,7 +40,7 @@ def play_game_with_policy(env, policy, render_mode=RendMode, sleep_time=SleepFor
     print(f"Total Reward: {total_reward}")
 
 
-def calculate_fitness(q_net, env):
+def calculate_fitness(q_net, env, device):
     episode_reward = []
 
     for episodes in range(NumEpisodes):
@@ -83,7 +83,7 @@ def genetic_algorithm(
     best_fitness_scores = []
 
     for _ in tqdm(range(generations), desc="Generation"):
-        fitness_scores = [calculate_fitness(q_net, env) for q_net in population]
+        fitness_scores = [calculate_fitness(q_net, env, device) for q_net in population]
         print("Fitness scores:", fitness_scores)
 
         best_fitness_scores.append(max(fitness_scores))
@@ -114,7 +114,7 @@ def genetic_algorithm(
 
         population = survivors + children
 
-    fitness_scores = [calculate_fitness(q_net, env) for q_net in population]
+    fitness_scores = [calculate_fitness(q_net, env, device) for q_net in population]
     best_fitness = max(fitness_scores)
     best_policy_index = fitness_scores.index(best_fitness)
     return population[best_policy_index], best_fitness_scores
