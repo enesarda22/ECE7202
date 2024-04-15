@@ -120,21 +120,22 @@ def genetic_algorithm(
     return population[best_policy_index], best_fitness_scores
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-env = gym.make("PongNoFrameskip-v4")
-env = AtariPreprocessing(env, grayscale_obs=True, scale_obs=True)
-n_actions = env.action_space.n
+    env = gym.make("PongNoFrameskip-v4")
+    env = AtariPreprocessing(env, grayscale_obs=True, scale_obs=True)
+    n_actions = env.action_space.n
 
-start_time = time.time()
-best_q_net, best_fitness_scores = genetic_algorithm(env, device=device)
-end_time = time.time()
-print(f"Training time: {end_time - start_time:.2f} seconds")
+    start_time = time.time()
+    best_q_net, best_fitness_scores = genetic_algorithm(env, device=device)
+    end_time = time.time()
+    print(f"Training time: {end_time - start_time:.2f} seconds")
 
-plot_rewards(best_fitness_scores, w=50)
-torch.save(best_q_net.state_dict(), "policy_net_ga_pong.pt")
+    plot_rewards(best_fitness_scores, w=50)
+    torch.save(best_q_net.state_dict(), "policy_net_ga_pong.pt")
 
-# best_policy = (
-#     Policy()
-# )  # This would be the policy you obtained from your genetic algorithm
-# play_game_with_policy(env, best_policy)
+    # best_policy = (
+    #     Policy()
+    # )  # This would be the policy you obtained from your genetic algorithm
+    # play_game_with_policy(env, best_policy)
