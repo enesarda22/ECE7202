@@ -19,11 +19,11 @@ class Policy:
 
 def calculate_fitness(policy, env):
     reset_return = env.reset()
-    # Check if the environment's reset method returns a tuple and extract the observation
+    # get observation
     if isinstance(reset_return, tuple):
-        observation = reset_return[0]  # Assuming the observation is the first element
+        observation = reset_return[0]
     else:
-        observation = reset_return  # Direct assignment if not a tuple
+        observation = reset_return
 
     total_reward = 0
     for _ in range(1000):
@@ -36,21 +36,19 @@ def calculate_fitness(policy, env):
                 done,
                 truncated,
                 _,
-            ) = step_return  # Adjusted for environments returning a tuple with 5 elements
+            ) = step_return
         elif isinstance(step_return, tuple) and len(step_return) == 4:
             (
                 observation,
                 reward,
                 done,
                 _,
-            ) = step_return  # Standard Gym environment return
+            ) = step_return
         else:
-            observation = step_return  # Direct assignment if not a tuple, uncommon case
+            observation = step_return
 
         total_reward += reward
-        if (
-            done or truncated
-        ):  # Added 'truncated' to handle environments where an episode can be truncated
+        if done or truncated:
             break
     return total_reward
 
@@ -90,13 +88,12 @@ def genetic_algorithm(env, generations=50, population_size=10):
 def play_cartpole_with_policy(env, policy, episodes=5):
     for episode in range(episodes):
         reset_return = env.reset()
-        # Check if the environment's reset method returns a tuple and extract the observation
+
+        # get observation
         if isinstance(reset_return, tuple):
-            observation = reset_return[
-                0
-            ]  # Assuming the observation is the first element
+            observation = reset_return[0]
         else:
-            observation = reset_return  # Direct assignment if not a tuple
+            observation = reset_return
 
         total_reward = 0
         for t in range(1000):
@@ -110,23 +107,19 @@ def play_cartpole_with_policy(env, policy, episodes=5):
                     done,
                     truncated,
                     _,
-                ) = step_return  # Adjusted for environments returning a tuple with 5 elements
+                ) = step_return
             elif isinstance(step_return, tuple) and len(step_return) == 4:
                 (
                     observation,
                     reward,
                     done,
                     _,
-                ) = step_return  # Standard Gym environment return
+                ) = step_return
             else:
-                observation = (
-                    step_return  # Direct assignment if not a tuple, uncommon case
-                )
+                observation = step_return
 
             total_reward += reward
-            if (
-                done or truncated
-            ):  # Added 'truncated' to handle environments where an episode can be truncated
+            if done or truncated:
                 print(
                     f"Episode {episode+1} finished after {t+1} timesteps with reward {total_reward}."
                 )
@@ -134,12 +127,12 @@ def play_cartpole_with_policy(env, policy, episodes=5):
     env.close()
 
 
-# Initialize the environment and run the genetic algorithm
+# initialize the environment and run the genetic algorithm
 env = gym.make("CartPole-v1")
 
-start_time = time.time()  # Start time
+start_time = time.time()  # start time
 best_policy, best_fitness_scores = genetic_algorithm(env)
-end_time = time.time()  # End time
+end_time = time.time()  # end time
 print(f"Training time: {end_time - start_time:.2f} seconds")
 
 if best_policy:

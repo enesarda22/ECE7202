@@ -135,8 +135,3 @@ if __name__ == "__main__":
 
     plot_rewards(best_fitness_scores, w=50)
     torch.save(best_q_net.state_dict(), "policy_net_ga_pong.pt")
-
-    # best_policy = (
-    #     Policy()
-    # )  # This would be the policy you obtained from your genetic algorithm
-    # play_game_with_policy(env, best_policy)

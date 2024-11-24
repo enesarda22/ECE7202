@@ -1,9 +1,8 @@
-
-
-#Cartpole playing using GA
+# Cartpole playing using GA
 import time
 import gymnasium as gym
 import numpy as np
+
 
 class Policy:
     def __init__(self, rules=None):
@@ -15,21 +14,22 @@ class Policy:
         observation = np.array(observation)
         return 0 if np.dot(self.rules, observation) < 0 else 1
 
+
 if __name__ == "__main__":
     env = gym.make("CartPole-v1", render_mode="human")
 
-    best_policy = Policy()  # This should be replaced with your actual best policy from GA
-    
+    best_policy = Policy([0.10693759, -0.27635204, 0.79183118, 0.59610431])
+
     for episode_i in range(100):
-        observation, info = env.reset()  # Use env.reset() correctly based on gymnasium API
+        observation, info = env.reset()
 
         for time_i in range(5000):
-            env.render()  # Render the environment at the current state
-            action = best_policy.decide_action(observation)  # Get action from the policy
-            observation, reward, done, truncated, info = env.step(action)  # Execute the action
+            env.render()  # render the environment at the current state
+            action = best_policy.decide_action(observation)
+            observation, reward, done, truncated, info = env.step(action)
 
-            time.sleep(0.01)  # Sleep to slow down the loop for visual inspection
-            if done or truncated:  # Break the loop if the episode is over
+            time.sleep(0.01)  # sleep to slow down the loop
+            if done or truncated:  # break the loop if the episode is over
                 break
 
-    env.close()  # Close the environment after all episodes are done
+    env.close()  # close the environment after all episodes are done

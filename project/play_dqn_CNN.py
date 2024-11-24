@@ -8,7 +8,7 @@ import torch
 from utils import CNN
 
 if __name__ == "__main__":
-    GAME = "BreakoutNoFrameskip-v4"  # should be with NoFrameskip
+    GAME = "PongNoFrameskip-v4"  # should be with NoFrameskip
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -20,7 +20,9 @@ if __name__ == "__main__":
     n_actions = env.action_space.n
 
     policy_net = CNN(n_actions).to(device)
-    policy_net.load_state_dict(torch.load(f"policy_net_{GAME}.pt", map_location=device))
+    policy_net.load_state_dict(
+        torch.load(f"policy_net_ga_pong.pt", map_location=device)
+    )
 
     for episode_i in range(10000):
         state, _ = env.reset()
